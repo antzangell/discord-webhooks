@@ -109,7 +109,7 @@ def calc_7d_change_item(history):
     return round((latest["value"] - seven_ago["value"]) / seven_ago["value"] * 100, 1)
 
 def exchange_history_to_chart_data(points):
-    sorted_pts = sorted(points, key=lambda p: p["timestamp"])
+    sorted_pts = sorted(points, key=lambda p: p["timestamp"])[-10:]
     labels = [datetime.fromisoformat(p["timestamp"].replace("Z", "+00:00")).strftime("%-d %b") for p in sorted_pts]
     values = [round(p.get("rate", 0), 1) for p in sorted_pts]
     return labels, values
