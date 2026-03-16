@@ -151,18 +151,16 @@ def build_embeds(currencies, uniques):
     fields = []
 
     for name, data in currencies.items():
-        link = f"[{name}]({data['url']})"
         if "chaos" in data:
-            fields.append({"name": f"💠 {link}", "value": f"**{data['chaos']:,.1f}** chaos", "inline": True})
+            fields.append({"name": f"💠 {name}", "value": f"**[{data['chaos']:,.1f}]({data['url']})** chaos", "inline": True})
         elif "divine_rate" in data:
-            fields.append({"name": f"💠 {link}", "value": f"**{data['divine_rate']:,.1f}** divine", "inline": True})
+            fields.append({"name": f"💠 {name}", "value": f"**[{data['divine_rate']:,.1f}]({data['url']})** divine", "inline": True})
 
     for name, prices in uniques.items():
         if prices:
-            link = f"[{name}]({prices['url']})"
             fields.append({
-                "name": f"🏆 {link}",
-                "value": f"**{prices['divine']:,.1f}** divine",
+                "name": f"🏆 {name}",
+                "value": f"**[{prices['divine']:,.1f}]({prices['url']})** divine",
                 "inline": True,
             })
 
