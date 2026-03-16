@@ -9,19 +9,24 @@ from urllib.parse import quote
 
 import requests
 
-LEAGUE = "Mirage"
+LEAGUE = os.environ.get('LEAGUE', 'Mirage')
 BASE_URL = "https://poe.ninja/api/data"
 EXCHANGE_URL = "https://poe.ninja/poe1/api/economy/exchange/current/details"
 WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL")
 
+NINJA_URL = f"https://poe.ninja/economy/{LEAGUE.lower()}"
+
 CURRENCY_ITEMS = {
-    "divine-orb": "Divine Orb",
-    "mirror-of-kalandra": "Mirror of Kalandra",
-    "mirror-shard": "Mirror Shard",
-    "hinekoras-lock": "Hinekora's Lock",
+    "divine-orb": ("Divine Orb", f"{NINJA_URL}/currency/divine-orb"),
+    "mirror-of-kalandra": ("Mirror of Kalandra", f"{NINJA_URL}/currency/mirror-of-kalandra"),
+    "mirror-shard": ("Mirror Shard", f"{NINJA_URL}/currency/mirror-shard"),
+    "hinekoras-lock": ("Hinekora's Lock", f"{NINJA_URL}/currency/hinekoras-lock"),
 }
 
-UNIQUE_ITEMS = {"Headhunter", "Mageblood"}
+UNIQUE_ITEMS = {
+    "Headhunter": f"{NINJA_URL}/unique-accessories/headhunter-leather-belt",
+    "Mageblood": f"{NINJA_URL}/unique-accessories/mageblood-heavy-belt",
+}
 
 def fetch_json(url):
     resp = requests.get(url, headers={"User-Agent": "ExilenceCE-PriceBot/1.0"})
@@ -33,14 +38,14 @@ DIVINE_DISPLAY = {"Mirror of Kalandra", "Mirror Shard", "Hinekora's Lock"}
 
 def get_currency_data():
     results = {}
-    for slug, name in CURRENCY_ITEMS.items():
+    for slug, (name, url) in CURRENCY_ITEMS.items():
         data = fetch_json(f"{EXCHANGE_URL}?league={LEAGUE}&type=Currency&id={slug}")
         pairs = {p["id"]: p for p in data.get("pairs", [])}
 
         chaos_pair = pairs.get("chaos", {})
         divine_pair = pairs.get("divine", {})
 
-        entry = {}
+        entry = {"url": url}
         if name in DIVINE_DISPLAY and divine_pair.get("rate"):
             entry["divine_rate"] = divine_pair["rate"]
             entry["divine_history"] = divine_pair.get("history", [])
@@ -61,7 +66,7 @@ def get_unique_prices():
     for line in data.get("lines", []):
         name = line.get("name", "")
         if name in UNIQUE_ITEMS and name not in results:
-            results[name] = {"chaos": line.get("chaosValue", 0), "divine": line.get("divineValue", 0)}
+            results[name] = {"chaos": line.get("chaosValue", 0), "divine": line.get("divineValue", 0), "url": UNIQUE_ITEMS[name]}
             item_ids[name] = line.get("id")
 
     for name, item_id in item_ids.items():
@@ -146,15 +151,17 @@ def build_embeds(currencies, uniques):
     fields = []
 
     for name, data in currencies.items():
+        link = f"[{name}]({data['url']})"
         if "chaos" in data:
-            fields.append({"name": f"💠 {name}", "value": f"**{data['chaos']:,.1f}** chaos", "inline": True})
+            fields.append({"name": f"💠 {link}", "value": f"**{data['chaos']:,.1f}** chaos", "inline": True})
         elif "divine_rate" in data:
-            fields.append({"name": f"💠 {name}", "value": f"**{data['divine_rate']:,.1f}** divine", "inline": True})
+            fields.append({"name": f"💠 {link}", "value": f"**{data['divine_rate']:,.1f}** divine", "inline": True})
 
     for name, prices in uniques.items():
         if prices:
+            link = f"[{name}]({prices['url']})"
             fields.append({
-                "name": f"🏆 {name}",
+                "name": f"🏆 {link}",
                 "value": f"**{prices['divine']:,.1f}** divine",
                 "inline": True,
             })
@@ -166,7 +173,8 @@ def build_embeds(currencies, uniques):
         "title": f"📊 {LEAGUE} League — Price Tracker",
         "color": 0xE8A524,
         "fields": fields,
-        "footer": {"text": "Data from poe.ninja • Contribute: github.com/antzangell/discord-webhooks"},
+        "description": "[Contribute on GitHub](https://github.com/antzangell/discord-webhooks)",
+        "footer": {"text": "Data from poe.ninja"},
         "timestamp": now.isoformat(),
     }
 
