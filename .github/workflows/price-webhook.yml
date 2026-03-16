@@ -7,7 +7,7 @@ on:
 
 jobs:
   post-prices:
-    if: github.ref == 'refs/heads/master' && github.actor == 'antzangell'
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
