@@ -166,7 +166,7 @@ def build_embeds(currencies, uniques):
         "title": f"📊 {LEAGUE} League — Price Tracker",
         "color": 0xE8A524,
         "fields": fields,
-        "footer": {"text": "Data from poe.ninja"},
+        "footer": {"text": "Data from poe.ninja • Contribute: github.com/antzangell/discord-webhooks"},
         "timestamp": now.isoformat(),
     }
 
