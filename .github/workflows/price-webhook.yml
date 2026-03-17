@@ -2,7 +2,7 @@ name: Price Tracker Webhook
 
 on:
   schedule:
-    - cron: '0 * * * *' # Every hour
+    - cron: '*/15 * * * *' # Every 15 min to combat GitHub skipping
   workflow_dispatch: # Allow manual trigger
 
 jobs:
@@ -13,11 +13,31 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main
-      - uses: actions/setup-python@v5
+
+      - name: Get hour key
+        id: hour
+        run: echo "key=posted-$(date -u +%Y-%m-%d-%H)" >> "$GITHUB_OUTPUT"
+
+      - name: Check if already posted this hour
+        id: dedup
+        uses: actions/cache/restore@v4
         with:
-          python-version: '3.12'
-      - run: pip install -r scripts/requirements.txt
-      - run: python scripts/price-webhook.py
+          path: .hourly-marker
+          key: ${{ steps.hour.outputs.key }}
+
+      - name: Post prices
+        if: steps.dedup.outputs.cache-hit != 'true' || github.event_name == 'workflow_dispatch'
+        run: |
+          pip install -r scripts/requirements.txt
+          python scripts/price-webhook.py
+          date -u > .hourly-marker
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           LEAGUE: ${{ vars.LEAGUE || 'Mirage' }}
+
+      - name: Mark hour as posted
+        if: steps.dedup.outputs.cache-hit != 'true' || github.event_name == 'workflow_dispatch'
+        uses: actions/cache/save@v4
+        with:
+          path: .hourly-marker
+          key: ${{ steps.hour.outputs.key }}
